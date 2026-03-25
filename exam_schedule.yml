@@ -1,0 +1,25 @@
+exams:
+- course_name: Ayrik-Matematik
+  date: '2026-04-06'
+  time: 09:00
+  notification_offset_minutes: 30
+- course_name: Cizge-Kuram
+  date: '2026-04-06'
+  time: '13:00'
+  notification_offset_minutes: 30
+- course_name: Java-II
+  date: '2026-04-07'
+  time: 09:00
+  notification_offset_minutes: 30
+- course_name: Sistem-Programlama
+  date: '2026-04-07'
+  time: '13:00'
+  notification_offset_minutes: 30
+- course_name: Nesne-Yonelimli-Programlama
+  date: '2026-04-08'
+  time: 09:00
+  notification_offset_minutes: 30
+- course_name: Programlamaya-Giris-II
+  date: '2026-04-08'
+  time: '13:00'
+  notification_offset_minutes: 30
