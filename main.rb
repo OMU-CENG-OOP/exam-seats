@@ -1,14 +1,20 @@
-require_relative 'exam_notification_system'
+require_relative 'lib/courserostershuffler'
+require_relative 'lib/exam'
+require_relative 'lib/examschedule'
+require_relative 'lib/examtriggerrunner'
+require_relative 'lib/notificationservice'
+require_relative 'lib/studentdirectory'
+
 require 'time'
-#require_relative, require ve load farkları
+#require_relative, require ve load farklarina bakiniz
 puts "=== SISTEM BASLATILIYOR ==="
 
-# 1. Öğrenci directory yükle
-student_directory = StudentDirectory.new("students.csv")
-puts "Student directory yuklendi."
+# 1. Ogrenci directory yukle
+student_directory = StudentDirectory.new("Lists/Whole Students.csv")
+puts "Student directory <ogrenci_no> <mail_address> yuklendi."
 
-# 2. Dersleri karıştır ve salonlara dağıt
-shuffler = CourseRosterShuffler.new("courses.yml")
+# 2. Dersleri karistir ve salonlara dagit
+shuffler = CourseRosterShuffler.new("YAMLs/courses.yml")
 
 # salon kapasitesi
 salons = {
@@ -22,10 +28,10 @@ salons = {
 puts "\n=== DERS LISTELERI KARISTIRILIYOR VE SALON DAGITIMI YAPILIYOR ==="
 shuffler.shuffle_and_distribute_all(salons)
 
-# 3. Sınav programını yükle
-schedule = ExamSchedule.new("exam_schedule.yml")
+# 3. Sinav programini yukle
+schedule = ExamSchedule.new("/YAMLs/exam_schedule.yml")
 
-# 4. Notification servisi
+# 4. Notification (Bildirim) servisi
 notifier = NotificationService.new(student_directory)
 
 # 5. Runner
