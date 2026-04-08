@@ -1,4 +1,5 @@
-require 'blablabla'
+require 'NotificationService'
+require 'yaml'
 
 # Zamani gelen sinavlar icin bildirim akisini calistirir.
 class ExamTriggerRunner
@@ -7,7 +8,14 @@ class ExamTriggerRunner
     @notification_service = notification_service
   end
 
-  def run(current_time)
+  file_path = File.expand_path('../exam-seats/YAMLs/exam_schedule.yml', __dir__)
+    if File.exist?(file_path)
+      exam_data = YAML.load_file(file_path)
+    else
+      abort "Hata: Sınav dosyası bulunamadı! Aranan konum: #{file_path}"
+    end
+    
+      def run(current_time)
 
 
   end
