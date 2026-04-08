@@ -9,8 +9,11 @@ class CourseRosterShuffler
   attr_reader :courses, :room_capacities
 
   def initialize(room_capacities = default_room_capacities)
-    @courses = []
     @room_capacities = room_capacities
+    # Temporary mock data for testing
+    @courses = [
+      { 'name' => 'DataStructures', 'students' => [101, 102, 103, 104, 105] }
+    ]
   end
 
   def default_room_capacities
@@ -28,11 +31,24 @@ class CourseRosterShuffler
   end
 
   def total_capacity
-
+    total = 0
+    @room_capacities.each do |room|
+      total += room['capacity']
+    end
+    total
   end
 
   def shuffle_course(course_name)
-
+    # 1. Find the specific course in our list
+    course = @courses.find { |c| c['name'] == course_name }
+    
+    # 2. If we found the course, shuffle its students
+    if course
+      course['students'].shuffle! 
+      puts "Shuffled students for #{course_name}."
+    else
+      puts "Course #{course_name} not found!"
+    end
   end
 
   def shuffle_all
@@ -50,3 +66,10 @@ class CourseRosterShuffler
 
   end
 end
+
+shuffler = CourseRosterShuffler.new
+puts "Before shuffle: #{shuffler.courses.first['students']}"
+
+shuffler.shuffle_course('DataStructures')
+
+puts "After shuffle: #{shuffler.courses.first['students']}"
