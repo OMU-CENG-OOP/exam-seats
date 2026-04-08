@@ -5,6 +5,11 @@
 # student_no
 # 2301001
 # 2301002
+
+require "yaml"
+require "csv"
+
+
 class CourseRosterShuffler
   attr_reader :courses, :room_capacities
 
@@ -27,7 +32,27 @@ class CourseRosterShuffler
   end
 
   def load_courses(yml_path)
-
+    yaml_data = YAML.load_file(yml_path)
+    
+    # Iterate through the array under the 'courses' key
+    yaml_data['courses'].each do |course_name|
+      # Infer the CSV filename (e.g., "Ayrik-Matematik" -> "Ayrik-Matematik.csv")
+      file_path = "#{course_name}.csv"
+      students = []
+      
+      # Check if the CSV file actually exists before trying to read it
+      if File.exist?(file_path)
+        CSV.foreach(file_path, headers: true) do |row|
+          # Convert the CSV row to a hash so we keep student_no, name, and surname
+          students << row.to_h
+        end
+        
+        @courses << { 'name' => course_name, 'file_path' => file_path, 'students' => students }
+        puts "Loaded #{students.length} students for #{course_name}."
+      else
+        puts "WARNING: File #{file_path} not found! Skipping..."
+      end
+    end
   end
 
   def total_capacity
