@@ -43,12 +43,32 @@ class CourseRosterShuffler
   end
 
   def shuffle_course(course_name)
-    #Aperture Science, we do what we must, because we can.
+    course = @courses.find { |c| c['name'] == course_name }
+    if course
+      course['students'].shuffle!
+      puts "Shuffled: #{course_name}"
+    end
   end
 
   def build_seat_plan(students)
-    #But there's no sense crying over every mistake. 
-    #You just keep on trying till you run out of cake.
+    plan = []
+    student_index = 0
+
+    @room_capacities.each do |room|
+      room_name = room['salon']
+      capacity = room['capacity']
+
+     # Fill this room until capacity is hit or students run out
+      capacity.times do
+        break if student_index >= students.length
+        
+        student = students[student_index]
+        # Add the salon info to the student hash
+        plan << student.merge({ 'salon' => room_name })
+        student_index += 1
+      end
+    end
+    plan
   end
 
   # Saves the new list (with room assignments) back to CSV
