@@ -1,16 +1,12 @@
-# courses.yml dosyasindaki dersleri okuyup her dersin CSV listesini karistirir,
-# ogrencileri salonlara paylastirir ve ayni dosyaya geri kaydeder.
-#
-# Beklenen ders CSV formati:
-# student_no
-# 2301001
-# 2301002
+require "yaml"
+require "csv"
+
 class CourseRosterShuffler
   attr_reader :courses, :room_capacities
 
   def initialize(room_capacities = default_room_capacities)
-    @courses = []
     @room_capacities = room_capacities
+    @courses = [] # Start empty
   end
 
   def default_room_capacities
@@ -23,30 +19,79 @@ class CourseRosterShuffler
     ]
   end
 
+  # Loads course names from YAML, then reads their specific CSVs
   def load_courses(yml_path)
-
-  end
-
-  def total_capacity
-
-  end
-
-  def shuffle_course(course_name)
-
+    yaml_data = YAML.load_file(yml_path)
+    
+    yaml_data['courses'].each do |course_name|
+      file_path = "Lists/#{course_name}.csv"
+      students = []
+      
+      if File.exist?(file_path)
+        CSV.foreach(file_path, headers: true) do |row|
+          students << row.to_h
+        end
+        @courses << { 'name' => course_name, 'file_path' => file_path, 'students' => students }
+      else
+        puts "WARNING: #{file_path} not found."
+      end
+    end
   end
 
   def shuffle_all
-
+    @courses.each { |course| shuffle_course(course['name']) }
   end
 
-  private
-
-  def build_seat_plan(student_nos)
-
-    assigned_rows
+  def shuffle_course(course_name)
+    #Aperture Science, we do what we must, because we can.
   end
 
+  def build_seat_plan(students)
+    #But there's no sense crying over every mistake. 
+    #You just keep on trying till you run out of cake.
+  end
+
+  # Saves the new list (with room assignments) back to CSV
   def save_assigned_rows(file_path, assigned_rows)
+    return if assigned_rows.empty?
 
+    CSV.open(file_path, "wb") do |csv|
+      # Extract headers from the first hash keys
+      csv << assigned_rows.first.keys
+      assigned_rows.each do |row|
+        csv << row.values
+      end
+    end
+    puts "Saved results to #{file_path}"
   end
+
+  # Main execution method to run the whole pipeline
+  def process_all_courses
+    @courses.each do |course|
+      # 1. Shuffle
+      shuffle_course(course['name'])
+      
+      # 2. Build Plan
+      assigned = build_seat_plan(course['students'])
+      
+      # 3. Save (using a new name or overwriting)
+      save_assigned_rows("Lists/#{course['name']}_assigned.csv", assigned)
+    end
+  end
+end
+
+# --- TESTING BLOCK ---
+# This block ONLY runs if you execute this specific file directly.
+# It gets completely ignored if main.rb "requires" this file later.
+if __FILE__ == $0
+  puts "Running tests directly from courserostershuffler.rb..."
+
+  shuffler = CourseRosterShuffler.new
+  
+  # Notice the paths are written assuming you are running the command 
+  # from your main 'exam-seats' folder!
+  shuffler.load_courses('YAMLs/courses.yml')
+  shuffler.process_all_courses
+
+  puts "Shuffling complete! Go check the Lists folder to see the assigned CSVs."
 end
