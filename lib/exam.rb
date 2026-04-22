@@ -13,17 +13,19 @@ class Exam
     @time = Time.parse(time_string) # string gelen bir şeyi Time nesnesine dönüştüreceğiim
   end
 
-  def exam_datetime
-    exam = Exam.new 
-    exam_time= Time.new(exam)
+  def exam_datetime # bu fonk zamanı üretecek ve hesaplayacak
+    
+    
     time_now=Time.now
    
 
   end
 
-  def trigger_time        #tetiklenme zamanımız
-    trigger_time =Time.new(exam_time-10)
-    while time_now <  exam_time # şuanki zaman < gelecek zaman
+  def trigger_time        #tetiklenme zamanımız bir zamanı alacak ve ozamana kadar bekleyip zamanı gelince bir mesaj döndürecek
+     # yeni zaman üretmeyeceğim var olan zamanı kullancam
+     exam.time 
+
+    while Time.now <  @time  # şuanki zaman < gelecek zaman eğer gelmediyese  sleep ile bekliyoruz ama 5sn de bir kontrol yapıyoruz
  
       sleep(5) # programı 5 sm de bir sürekli durdurur
 
@@ -38,3 +40,7 @@ end
 #@time  # instance variable  nesye ait özel değişken
 #time   # method çağrısı  / yerel değişkenimiz / parametre
 #Time   # Ruby class ım
+
+
+exam = Exam.new("Math", "2026-04-08", "10:00") 
+
