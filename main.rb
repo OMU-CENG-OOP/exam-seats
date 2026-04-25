@@ -32,7 +32,14 @@ shuffler.shuffle_and_distribute_all(salons)
 schedule = ExamSchedule.new("/YAMLs/exam_schedule.yml")
 
 # 4. Notification (Bildirim) servisi
-notifier = NotificationService.new(student_directory)
+# `config`, secilen bildirici kanalinin ayarlarini tasir.
+notifier = ConsoleNotificationService.new(student_directory, config: {})
+
+# 4. Gelecek icin alternatif bildiriciler:
+# notifier = SlackNotificationService.new(student_directory, config: {})
+# notifier = GmailChatNotificationService.new(student_directory, config: {})
+# notifier = DiscordNotificationService.new(student_directory, config: {})
+# notifier = SmsNotificationService.new(student_directory, config: {})
 
 # 5. Runner
 runner = ExamTriggerRunner.new(schedule, notifier)
