@@ -1,264 +1,324 @@
-# Sınav Bildirim Sistemi - Temel Tasarım Dokümanı
+# Sınav Yerleşim ve Bildirim Sistemi
 
-Bu dosyada anlatılan yapı, Ruby dili ile geliştirilecek basit bir sınav oturma planı ve bildirim iskeletini oluşturmaktadır.
+Bu proje, Ruby ile geliştirilen bir sınav yerleşim ve bildirim iskeletidir. Amaç; öğrenci listelerini salonlara dağıtmak, sınav takvimini belleğe almak ve zamanı gelen sınavlar için seçilen bildirim kanalı üzerinden duyuru göndermektir.
 
-Sistemde dört ana işi bulunmaktadır:
+Kod tabanındaki bazı sınıflar özellikle şablon halinde bırakılmıştır. Öğrenciden beklenen, bu sınıfların içini verilen arayüze sadık kalarak doldurmasıdır.
 
-1. `students.csv` dosyasından tüm bölüm öğrencilerinin bilgilerini belleğe alma,
-2. `courses.yml` dosyasından ders adlarını okuma,
-3. Her ders için `<course_name>.csv` dosyasını karıştırma, öğrencileri tanımlı salon kapasitelerine göre dağıtma ve aynı dosyaya tekrar kaydetme,
-4. `exam_schedule.yml` dosyasındaki sınav saatlerini takip etme; sınavdan 30 dakika önce ilgili öğrencilere bildirim üretme. Şimdilik gerçek e-posta yerine sadece ekrana yazdırılmalıdır.
+## Ana Akış
 
----
+`main.rb` içindeki hedef akış şöyledir:
 
-## 1. Sınıflar ve Sorumlulukları
+```ruby
+student_directory = StudentDirectory.new("Lists/Whole Students.csv")
 
-### StudentDirectory
-Amaç: `students.csv` dosyasını okuyup öğrenci numarasına göre isim, soyisim ve e-posta bilgilerini bellekte tutmak.
+shuffler = CourseRosterShuffler.new("YAMLs/courses.yml")
+shuffler.shuffle_and_distribute_all(salons)
 
-Beklenen CSV biçimi:
+schedule = ExamSchedule.new("/YAMLs/exam_schedule.yml")
 
-```csv
-student_no,name,surname,email
-2301001,Ali,Yilmaz,ali@example.com
-2301002,Ayse,Demir,ayse@example.com
+notifier = ConsoleNotificationService.new(student_directory, config: {})
+
+runner = ExamTriggerRunner.new(schedule, notifier)
+runner.run(test_time)
 ```
 
-Temel davranışlar:
-- CSV'den veriyi yükler.
-- `student_no` ile öğrenci bilgisi döndürür.
+Bu akışta:
 
----
+- `StudentDirectory` öğrenci rehberini sağlar.
+- `CourseRosterShuffler` ders listelerini karıştırır ve salonlara dağıtır.
+- `ExamSchedule` sınav takvimini yükler.
+- `NotificationService` ailesinden seçilen bir servis bildirimi gönderir.
+- `ExamTriggerRunner` zamanı gelen sınavları bulup bildirimi tetikler.
 
-### CourseRosterShuffler
-Amaç: `courses.yml` dosyasındaki dersleri okuyup her dersin CSV listesini karıştırmak, sonra öğrencileri salon kapasitelerine göre paylaştırmak ve dosyayı güncellemek.
+## Güncel Tasarım Kararları
 
-Varsayılan salon kapasitesi bilgisi:
+### 1. `ExamSchedule` bellekte ne tutmalı?
 
-- Z02: 108 kişi
-- Z05: 48 kişi
-- Z07: 36 kişi
-- Z08: 36 kişi
-- Z09: 36 kişi
+`ExamSchedule` dosyayı okuduktan sonra ana veri yapısı olarak `Array<Exam>` tutmalıdır.
 
-Toplam kapasite: 264 kişi
+Önerilen iç durum:
 
-Beklenen ders CSV giriş biçimi:
-
-```csv
-student_no
-2301001
-2301002
-2301003
+```ruby
+@source_path = "YAMLs/exam_schedule.yml"
+@exams = [
+  # Exam nesneleri
+]
 ```
 
-Karıştırma ve dağıtım sonrası aynı dosya şu biçime dönüşür:
+Bunun nedeni:
 
-```csv
-student_no,salon,seat_no,global_order
-2301050,Z02,1,1
-2301012,Z02,2,2
-2301091,Z02,3,3
-...
-2301198,Z05,1,109
+- `runner`, ham YAML hash'leriyle değil `Exam` nesneleriyle çalışmalıdır.
+- `due_exams(current_time)` doğrudan `Exam` nesneleri döndürmelidir.
+- `notifier.notify(exam)` çağrısı domain nesnesi üzerinden ilerlemelidir.
+
+### 2. `ExamTriggerRunner` hangi arayüzü bekliyor?
+
+`ExamTriggerRunner` iki bağımlılık alır:
+
+```ruby
+runner = ExamTriggerRunner.new(schedule, notifier)
 ```
 
-Dağıtım mantığı:
-- Liste önce rastgele karıştırılır.
-- Sonra verilen salon sırasına göre doldurulur.
-- Önce Z02 dolar, sonra Z05, sonra Z07, sonra Z08, sonra Z09.
-- `seat_no`, ilgili salon içindeki sıra numarasıdır.
-- `global_order`, tüm karıştırılmış listedeki genel sıradır.
+Bu kullanıma göre beklenti şudur:
 
----
+- `schedule` nesnesi `due_exams(current_time)` metodunu sağlamalıdır.
+- `notifier` nesnesi `notify(exam)` metodunu sağlamalıdır.
 
-### Exam
-Amaç: Tek bir sınavı temsil etmek.
+Yani `runner`, sınıf adıyla değil ortak arayüzle ilgilenir.
 
-Alanlar:
+### 3. Bildirim servisi nasıl genişletilir?
+
+Temel tasarım kanal bağımsızdır:
+
+- `NotificationService` taban sınıftır.
+- `ConsoleNotificationService` ilk somut örnektir.
+- İleride `SlackNotificationService`, `DiscordNotificationService`, `SmsNotificationService`, `GmailChatNotificationService` gibi alt sınıflar eklenebilir.
+
+Her bildirici aynı ortak metodu sunmalıdır:
+
+```ruby
+notify(exam)
+```
+
+Bu sayede `runner`, aktif kanal ne olursa olsun değişmeden kalır.
+
+## Sınıflar ve Beklenen Arayüzler
+
+### `Exam`
+
+Tek bir sınavı temsil eder.
+
+Beklenen alanlar:
+
 - `course_name`
 - `date`
 - `time`
 
-Davranışlar:
-- Sınavın gerçek tarih-saat bilgisini üretir.
-- Bildirim için `trigger_time = sınav zamanı - 30 dakika` hesabını yapar.
+Beklenen metodlar:
 
----
+- `initialize(course_name, date, time)`
+- `exam_datetime`
+- `trigger_time`
 
-### ExamSchedule
-Amaç: `exam_schedule.yml` dosyasını okuyup tüm sınavları belleğe almak.
+Not:
 
-Örnek YML:
+- `trigger_time`, sınavdan önce bildirim gönderilecek anı hesaplamak için kullanılmalıdır.
+- `notification_offset_minutes` gibi alanlar ileride bu hesapta dikkate alınabilir.
+
+### `ExamSchedule`
+
+Sınav takvimini yükleyen ve sorgulayan sınıftır.
+
+Mevcut iskelet:
+
+```ruby
+class ExamSchedule
+  attr_reader :exams, :source_path
+
+  def initialize(file_path = nil)
+  end
+
+  def load_from_yml(file_path)
+  end
+
+  def due_exams(current_time)
+  end
+
+  def add_exam(exam)
+  end
+
+  def reload!
+  end
+
+  def empty?
+  end
+end
+```
+
+Beklenen sorumluluklar:
+
+- YAML dosyasını okumak
+- satırları ayrıştırmak
+- her satırı `Exam` nesnesine dönüştürmek
+- `@exams` dizisinde tutmak
+- verilen anda tetiklenmesi gereken sınavları döndürmek
+
+Özel yardımcı metodlar:
+
+- `build_exam(exam_row)`
+- `raw_exam_rows(yml_data)`
+
+### `NotificationService`
+
+Kanal bağımsız bildirim taban sınıfıdır.
+
+Mevcut iskelet:
+
+```ruby
+class NotificationService
+  attr_reader :student_directory, :lists_path, :config
+
+  def initialize(student_directory, lists_path: 'Lists', config: {})
+  end
+
+  def notify(exam)
+  end
+end
+```
+
+Beklenen sorumluluklar:
+
+- ilgili dersin CSV dosyasını okumak
+- öğrenci numarasına göre rehberden öğrenci bilgisini çekmek
+- bildirim payload'ı üretmek
+- seçili kanala gönderim yapmak
+
+`config` nedir?
+
+- aktif bildirim kanalının ayarlarını taşır
+- örnek: `webhook_url`, `token`, `channel_id`, `sender_id`
+
+### `ConsoleNotificationService`
+
+İlk somut kanal örneğidir.
+
+Beklenen davranış:
+
+- `channel_name` döndürmek
+- `deliver(notification)` içinde mesajı ekrana basmak
+
+### `ExamTriggerRunner`
+
+Zamanı gelen sınavlar için bildirim akışını başlatır.
+
+Mevcut arayüz:
+
+```ruby
+class ExamTriggerRunner
+  def initialize(exam_schedule, notification_service)
+  end
+
+  def run(current_time)
+  end
+end
+```
+
+Beklenen davranış:
+
+1. `schedule.due_exams(current_time)` çağrılır.
+2. Dönen her `exam` için `notifier.notify(exam)` çağrılır.
+3. İşlenen sınav listesi geri döndürülebilir.
+
+### `StudentDirectory`
+
+Öğrenci rehberini tutar.
+
+Beklenen veri alanı:
+
+```csv
+student_no,email
+2301199,can.kilic199@example.com
+2301230,seda.dogan230@example.com
+```
+
+Beklenen metodlar:
+
+- `load_from_csv(file_path)`
+- `find(student_no)`
+
+### `CourseRosterShuffler`
+
+Ders listelerini karıştırıp salonlara dağıtan sınıftır.
+
+Beklenen görevler:
+
+- `courses.yml` içinden dersleri okumak
+- ders CSV dosyalarını karıştırmak
+- salon kapasitesine göre yerleşim yapmak
+- sonucu tekrar CSV olarak kaydetmek
+
+Beklenen yardımcı alanlar:
+
+- `courses`
+- `room_capacities`
+
+## Dosya Biçimleri
+
+### `YAMLs/exam_schedule.yml`
+
+Örnek mevcut yapı:
 
 ```yml
 exams:
-  - course_name: BLM101
-    date: 2026-03-30
-    time: "10:00"
-  - course_name: MAT103
-    date: 2026-03-30
-    time: "14:00"
+  - course_name: Ayrik-Matematik
+    date: '2026-04-06'
+    time: '09:00'
+    notification_offset_minutes: 30
+  - course_name: Cizge-Kuram
+    date: '2026-04-06'
+    time: '13:00'
+    notification_offset_minutes: 30
 ```
 
-Davranışlar:
-- YML'den sınav listesi oluşturur.
-- Belirli anda tetiklenmesi gereken sınavları döndürür.
+### `Lists/Whole Students.csv`
 
----
-
-### NotificationService
-Amaç: Sınavı yaklaşan dersin karıştırılmış CSV listesini okuyup öğrenciye özel bildirim metni üretmek.
-
-Kullandığı veri kaynakları:
-- `StudentDirectory` içindeki öğrenci adı, soyadı, e-posta bilgisi
-- `<course_name>.csv` içindeki salon ve sıra bilgisi
-
-Örnek çıktı:
-
-```text
-Sayın 2301001 nolu ogrencimiz Ali Yilmaz, BLM101 dersinizin sinavina 30 dk. sonra Z02 salonunda 17 sirasinda oturma plani yapilmistir. Sinavinizda basarilar dileriz.
-```
-
----
-
-### ExamTriggerRunner
-Amaç: O an tetik zamanı gelmiş sınavları bulmak ve bildirim servisini çalıştırmak.
-
-Akış:
-- `ExamSchedule` üzerinden zamanı gelen sınavları bulur.
-- Her sınav için `NotificationService` çağrılır.
-
----
-
-## 2. Sınıflar Arası İlişki
-
-İlişki özeti:
-
-- `StudentDirectory` → öğrenci rehberi sağlar.
-- `CourseRosterShuffler` → ders öğrenci listesini karıştırır ve salonlara dağıtır.
-- `ExamSchedule` → sınav takvimini tutar.
-- `Exam` → tek bir sınavdır.
-- `NotificationService` → öğrenci rehberi + ders oturma planı verisini kullanarak bildirim oluşturur.
-- `ExamTriggerRunner` → zamanı gelen sınavlar için bildirim sürecini başlatır.
-
-Basit akış:
-
-```text
-students.csv  ---> StudentDirectory
-courses.yml   ---> CourseRosterShuffler ---> BLM101.csv / MAT103.csv güncellenir
-exam_schedule.yml ---> ExamSchedule ---> Exam nesneleri
-
-ExamTriggerRunner ---> NotificationService ---> ekrana bildirim basılır
-```
-
----
-
-## 3. Dosya Biçimleri
-
-### students.csv
+Projede şu anda kullanılan rehber dosyası `student_no,email` biçimindedir.
 
 ```csv
-student_no,name,surname,email
-2301001,Ali,Yilmaz,ali@example.com
-2301002,Ayse,Demir,ayse@example.com
+student_no,email
+2301199,can.kilic199@example.com
+2301230,seda.dogan230@example.com
 ```
 
-### courses.yml
+### `Lists/<course_name>.csv`
 
-```yml
-courses:
-  - BLM101
-  - MAT103
-```
-
-### BLM101.csv (karıştırma öncesi)
+Karıştırma öncesi:
 
 ```csv
-student_no
-2301001
-2301002
-2301003
+student_no,name,surname
+2301199,Can,Kilic
+2301230,Seda,Dogan
 ```
 
-### BLM101.csv (karıştırma sonrası)
+Karıştırma sonrası hedef yapı:
 
 ```csv
 student_no,salon,seat_no,global_order
-2301002,Z02,1,1
-2301003,Z02,2,2
-2301001,Z02,3,3
+2301199,Z02,1,1
+2301230,Z02,2,2
 ```
 
-### exam_schedule.yml
+## Bildirim Kanalları
 
-```yml
-exams:
-  - course_name: BLM101
-    date: 2026-03-30
-    time: "10:00"
-```
+`lib/notificationservice.rb` içinde yorum bloğu halinde gelecek için örnek şablonlar bırakılmıştır:
 
----
+- `SlackNotificationService`
+- `GmailChatNotificationService`
+- `DiscordNotificationService`
+- `SmsNotificationService`
 
-## 4. İşleyiş Sırası
+Bu sınıflar şu amaçla yer alır:
 
-1. `students.csv` yüklenir.
-2. `courses.yml` yüklenir.
-3. Her dersin CSV dosyası karıştırılır.
-4. Öğrenciler salonlara sırayla dağıtılır.
-5. Yeni oturma planı aynı ders CSV dosyasına kaydedilir.
-6. `exam_schedule.yml` yüklenir.
-7. Çalışma zamanı, bir sınavın `trigger_time` değerine eşitse ilgili öğrenciler için bildirim üretilir.
+- ortak arayüzü göstermek
+- `config` kullanımını örneklemek
+- öğrencinin gerçek entegrasyonu aynı iskelet üzerinde geliştirmesini sağlamak
 
----
+## Geliştirme Notları
 
-## 5. Haftalık Geliştirme Planı
+Bu proje şu anda tam bitmiş bir uygulama değil, yönlendirilmiş bir iskelettir.
 
-### Hafta 1
-- `StudentDirectory`
-- CSV okuma
-- Hash içinde öğrenci bilgisi tutma
+Şu noktalar özellikle öğrenciye bırakılmıştır:
 
-### Hafta 2
-- `CourseRosterShuffler`
-- Ders CSV dosyasını karıştırma
-- Salonlara kapasiteye göre paylaştırma
-- CSV'ye geri yazma
+- YAML okuma ve `Exam` nesnesi üretimi
+- `due_exams` mantığı
+- öğrenci rehberi okuma
+- bildirim mesajı üretimi
+- gerçek Slack / Discord / SMS / Google Chat entegrasyonları
 
-### Hafta 3
-- `Exam` ve `ExamSchedule`
-- YML okuma
-- 30 dakika önce tetik zamanı hesabı
+En önemli bağımlılık sözleşmeleri şunlardır:
 
-### Hafta 4
-- `NotificationService`
-- Öğrenci bilgisi + salon bilgisi ile bildirim metni üretme
+- `ExamSchedule#due_exams(current_time)` -> `Array<Exam>`
+- `NotificationService#notify(exam)` -> bildirimleri üretir ve gönderir
+- `ExamTriggerRunner#run(current_time)` -> iki tarafı bağlar
 
-### Hafta 5
-- Menü
-- gerçek e-posta
-- hata kontrolleri
-- loglama
-
----
-
-## 6. Eksikler
-
-Şu anki sürümde:
-- gerçek e-posta gönderimi yoktur,
-- zamanlayıcı servisi yoktur,
-- tetikleme manuel `runner.run(Time.parse(...))` ile test edilir,
-- sınıf listesi dosyalarında öğrenci numarası sütununun adı `student_no` olmalıdır.
-
----
-
-## 7. Tetikleme Örneği
-
-Örnek test:
-
-```ruby
-runner.run(Time.parse('2026-03-30 09:30'))
-```
-
-Bu çağrı, `2026-03-30 10:00` saatli sınav için 30 dakika öncesi tetikleme yapar.
+Bu sözleşme korunduğu sürece alt sınıfların iç implementasyonu serbestçe geliştirilebilir.
