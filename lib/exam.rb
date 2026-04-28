@@ -19,6 +19,12 @@ class Exam
     time_now=Time.now
    
 
+  def initialize(course_name, date, time, notification_offset = 30)
+    @course_name = course_name
+    @date = date  
+    @time = time  
+    #BİLDİRİM KAÇ DK ÖNCE OLACAK 30 DK BURADA  SAKLANACAK
+    @notification_offset = notification_offset.to_i
   end
 
   def trigger_time        #tetiklenme zamanımız bir zamanı alacak ve ozamana kadar bekleyip zamanı gelince bir mesaj döndürecek
