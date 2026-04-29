@@ -67,5 +67,5 @@ class ExamSchedule
   def raw_exam_rows(yml_data) # veriyi ayıklama
     # TODO: YAML yapisindan sinav satirlarini cikart.
     #raise NotImplementedError, "#{self.class}#raw_exam_rows ogrenci tarafindan doldurulacak."
-    yml_data['exams'] || [] 
+    yml_data['exams'] || [] e
 end
