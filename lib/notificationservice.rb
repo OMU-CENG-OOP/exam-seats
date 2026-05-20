@@ -3,6 +3,16 @@ require 'csv'
 # Kanal-bagimsiz bildirim servisi sablonu.
 # Runner sadece `notify(exam)` cagirir; aktif kanal hangi sinifsa o kullanilir.
 class NotificationService
+  @@notification_offset_minutes = 40
+
+  def self.notification_offset_minutes
+    @@notification_offset_minutes
+  end
+
+  def self.notification_offset_minutes=(minutes)
+    @@notification_offset_minutes = minutes
+  end
+  
   attr_reader :student_directory, :lists_path, :config
 
   # `config`, aktif bildirici kanalinin ayarlarini tasir.
