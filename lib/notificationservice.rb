@@ -23,7 +23,7 @@ class NotificationService
   end
 
   def channel_name
-    'console'
+    raise NotImplementedError, "#{self.class}#channel_name ogrenci tarafindan doldurulacak."
   end
 
   private
@@ -60,22 +60,11 @@ class NotificationService
   end
 
   def notification_message(exam:, student_no:, student:, recipient:)
-    student_name = student_name_for(student, recipient)
-    exam_date = exam.respond_to?(:date) ? exam.date : nil
-    exam_time = exam.respond_to?(:time) ? exam.time : nil
-
-    [
-      "[#{channel_name.upcase}]",
-      "Ogrenci: #{student_name}",
-      "(#{student_no})",
-      "Ders: #{exam.course_name}",
-      ("Tarih: #{exam_date}" if exam_date),
-      ("Saat: #{exam_time}" if exam_time)
-    ].compact.join(' | ')
+    raise NotImplementedError, "#{self.class}#notification_message ogrenci tarafindan doldurulacak."
   end
 
   def deliver(notification)
-    puts notification[:message]
+    raise NotImplementedError, "#{self.class}#deliver ogrenci tarafindan doldurulacak."
   end
 
   def roster_csv_path(course_name)
@@ -87,16 +76,6 @@ class NotificationService
 
     student_directory.find(student_no)
   end
-
-  def student_name_for(student, recipient)
-    student_name = [student&.fetch('name', nil), student&.fetch('surname', nil)].compact.join(' ').strip
-    return student_name unless student_name.empty?
-
-    recipient_name = [recipient['name'], recipient['surname']].compact.join(' ').strip
-    return recipient_name unless recipient_name.empty?
-
-    'Bilinmeyen Ogrenci'
-  end
 end
 
 # Baslangic kanali. Ileride Slack, Discord, SMS vb. siniflar bunun gibi
@@ -104,6 +83,12 @@ end
 class ConsoleNotificationService < NotificationService
   def channel_name
     'console'
+  end
+
+  private
+
+  def deliver(notification)
+    puts notification[:message]
   end
 end
 

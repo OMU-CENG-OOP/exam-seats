@@ -2,6 +2,7 @@
 *.rbc
 *.sh
 *.codex
+.DS_Store
 /.config
 /coverage/
 /InstalledFiles
