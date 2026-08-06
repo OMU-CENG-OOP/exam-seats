@@ -17,29 +17,30 @@ class ExamTriggerRunner
 
 private 
 
-def verify_notification_capability!
+  def verify_notification_capability!
     unless @notification_service.respond_to?(:notify)
       raise ArgumentError, 'notification_service nesnesi notify(exam) metodunu saglamalidir.'
     end
-end
+  end
 
-def trigger_notifications(exams, current_time)
-  exams.each do |exam|
-    if should_send_notification?(exam, current_time)
-      send_notifications(exam)
-    end
-  end      
-end
+  def trigger_notifications(exams, current_time)
+    exams.each do |exam|
+      if should_send_notification?(exam, current_time)
+        send_notifications(exam)
+      end
+    end      
+  end
 
-def should_send_notification?(exam, current_time)
-  return false if @triggered_exams.include?(exam.object_id)
+  def should_send_notification?(exam, current_time)
+    return false if @triggered_exams.include?(exam.object_id)
     exam_start_time = Time.parse("#{exam.date} #{exam.time}")
     notification_trigger_time = exam_start_time - (@offset_minutes * 60)
-    current_time >= notification_trigger_time && current_time < exam_start_time
+    current_time >= notification_trigger_time && current_time < exam_start_time    
   end
-end
 
-def send_notifications(exam)
-  @notification_service.notify(exam)
-  @triggered_exams << exam.object_id 
+  def send_notifications(exam)
+    @notification_service.notify(exam)
+    @triggered_exams << exam.object_id 
+  end
+
 end
