@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sınav Yerleriniz</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; margin-top: 50px; }
+        .container { background-color: white; max-width: 600px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background-color: #f8f9fa; }
+        a { display: inline-block; margin-top: 20px; text-decoration: none; color: #0056b3; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Hoş Geldin, <%= @ogrenci.full_name %>!</h2>
+        <p>Aşağıda atanmış olduğunuz sınav salonlarını görebilirsiniz:</p>
+
+        <% if @sinavlar.empty? %>
+            <p style="color: red; font-weight: bold;">Şu an için atanmış bir sınavınız bulunmamaktadır.</p>
+        <% else %>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ders</th>
+                        <th>Sınav Salonu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% @sinavlar.each do |sinav| %>
+                        <tr>
+                            <td><strong><%= sinav[:course] %></strong></td>
+                            <td><%= sinav[:room] %></td>
+                        </tr>
+                    <% end %>
+                </tbody>
+            </table>
+        <% end %>
+
+        <a href="/">← Yeni Sorgulama Yap</a>
+    </div>
+
+</body>
+</html>

@@ -4,9 +4,14 @@ require "csv"
 class CourseRosterShuffler
   attr_reader :courses, :room_capacities
 
-  def initialize(room_capacities = default_room_capacities)
+  def initialize(room_capacities = default_room_capacities, output_folder = "AssignedLists")
+
     @courses = []
     @room_capacities = room_capacities
+    @output_folder = output_folder
+
+    Dir.mkdir(@output_folder) unless Dir.exist?(@output_folder)
+
   end
 
   def default_room_capacities
@@ -46,10 +51,19 @@ class CourseRosterShuffler
   end
 
   def shuffle_course(course_name)
+    # 1. Dersi hafızadan bul
     course = @courses.find { |c| c['name'] == course_name }
+    
     if course
+      # 2. Öğrenci listesini karıştır
       course['students'].shuffle!
       puts "Shuffled: #{course_name}"
+
+      assigned_students = build_seat_plan(course['students'])
+      save_assigned_rows(course_name, assigned_students)
+
+    else
+      puts "WARNING: #{course_name} bulunamadı."
     end
   end
 
@@ -80,15 +94,18 @@ class CourseRosterShuffler
     assigned_rows
   end
 
-  def save_assigned_rows(file_path, assigned_rows)
+  def save_assigned_rows(course_name, assigned_rows)
     return if assigned_rows.empty?
 
-    CSV.open(file_path, "wb") do |csv|
+    assigned_file_path = File.join(@output_folder, "assigned_#{course_name}.csv")    
+
+    CSV.open(assigned_file_path, "wb") do |csv|
       csv << assigned_rows.first.keys
       assigned_rows.each do |row|
         csv << row.values
       end
     end
-    puts "Saved results to #{file_path}"
+    puts "Saved results to #{assigned_file_path}"
   end
 end
+

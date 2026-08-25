@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sinav Yeri Sorgulama Sistemi</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f7f6; 
+            text-align: center; 
+            margin-top: 100px; 
+        }
+        .container { 
+            background-color: white;
+            max-width: 400px; 
+            margin: auto; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1); 
+        }
+        h2 { color: #333; }
+        input[type="text"] { 
+            width: 80%; 
+            padding: 12px; 
+            margin: 20px 0; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            font-size: 16px;
+        }
+        button { 
+            padding: 12px 25px; 
+            background-color: #0056b3; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            font-size: 16px;
+            cursor: pointer; 
+            transition: background 0.3s;
+        }
+        button:hover { 
+            background-color: #004494; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Sinav Yeri Sorgulama</h2>
+        <p>Lütfen öğrenci numaranizi giriniz.</p>
+        
+        <!-- Form verileri app.rb içindeki '/sorgula' post metoduna gönderilir -->
+        <form action="/sorgula" method="POST">
+            <input type="text" id="student_no" name="student_no" required placeholder="Örn: 123456">
+            <br>
+            <button type="submit">Sorgula</button>
+        </form>
+    </div>
+
+</body>
+</html>

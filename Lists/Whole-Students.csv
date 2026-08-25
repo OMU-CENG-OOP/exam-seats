@@ -1,4 +1,4 @@
-student_no,email
+student_no,name,surname,email
 2301199,can.kılıç199@example.com
 2301230,seda.doğan230@example.com
 2301213,hüseyin.kılıç213@example.com
